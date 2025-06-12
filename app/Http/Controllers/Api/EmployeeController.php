@@ -10,11 +10,13 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\EmployeeDocument;
 use App\Http\Controllers\Controller;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Traits\LogsUserAction;
 use App\Exports\EmployeeDocumentsExport;
 use App\Exports\AllEmployeeDocumentsExport;
 
 class EmployeeController extends Controller
 {
+    use LogsUserAction;
 
     public function index()
     {
@@ -30,7 +32,15 @@ class EmployeeController extends Controller
             'phone' => 'nullable|string'
         ]);
 
-        return Employee::create($validated);
+        $employee = Employee::create($validated);
+
+        $this->logUserAction('audit', 'Dipendente creato', [
+            'employee_id' => $employee->id,
+            'name' => $employee->name,
+            'surname' => $employee->surname
+        ]);
+
+        return $employee;
     }
 
     public function show(Employee $employee)
@@ -48,12 +58,23 @@ class EmployeeController extends Controller
         ]);
 
         $employee->update($validated);
+
+        $this->logUserAction('audit', 'Dipendente aggiornato', [
+            'employee_id' => $employee->id
+        ]);
+
         return $employee;
     }
 
     public function destroy(Employee $employee)
     {
+        $id = $employee->id;
         $employee->delete();
+
+        $this->logUserAction('audit', 'Dipendente eliminato', [
+            'employee_id' => $id
+        ]);
+
         return response()->json(['message' => 'Dipendente eliminato']);
     }
 
@@ -70,6 +91,11 @@ class EmployeeController extends Controller
                 ];
             });
 
+        $this->logUserAction('audit', 'Visualizzati documenti assegnati', [
+            'employee_id' => $employee->id,
+            'document_count' => $documents->count()
+        ]);
+
         return response()->json($documents);
     }
 
@@ -83,6 +109,11 @@ class EmployeeController extends Controller
             ->whereDate('expiration_date', '>=', Carbon::now())
             ->get();
 
+        $this->logUserAction('audit', 'Ricerca documenti in scadenza', [
+            'entro_giorni' => $days,
+            'totale' => $docs->count()
+        ]);
+
         return response()->json($docs);
     }
 
@@ -91,6 +122,10 @@ class EmployeeController extends Controller
         $docs = EmployeeDocument::with('document','employee')
             ->whereDate('expiration_date', '<', Carbon::now())
             ->get();
+
+        $this->logUserAction('audit', 'Ricerca documenti scaduti', [
+            'totale' => $docs->count()
+        ]);
 
         return response()->json($docs);
     }
@@ -107,11 +142,20 @@ class EmployeeController extends Controller
 
         $docs = Document::whereIn('id', $missing)->get();
 
+        $this->logUserAction('audit', 'Verifica documenti mancanti', [
+            'employee_id' => $employee->id,
+            'documenti_mancanti' => $docs->count()
+        ]);
+
         return response()->json(['missing_documents' => $docs]);
     }
 
     public function exportDocuments($employeeId)
     {
+        $this->logUserAction('audit', 'Esportazione documenti singolo dipendente (Excel)', [
+            'employee_id' => $employeeId
+        ]);
+
         return Excel::download(
             new EmployeeDocumentsExport($employeeId),
             "employee-{$employeeId}-documents.xlsx"
@@ -123,6 +167,11 @@ class EmployeeController extends Controller
         $employee = Employee::findOrFail($employeeId);
         $documents = $employee->employeeDocuments()->with('document')->get();
 
+        $this->logUserAction('audit', 'Esportazione documenti singolo dipendente (PDF)', [
+            'employee_id' => $employeeId,
+            'document_count' => $documents->count()
+        ]);
+
         $pdf = Pdf::loadView('exports.employee_documents', compact('employee', 'documents'));
 
         return $pdf->download("employee-{$employee->id}-documents.pdf");
@@ -130,6 +179,8 @@ class EmployeeController extends Controller
 
     public function exportAllDocumentsExcel()
     {
+        $this->logUserAction('audit', 'Esportazione di tutti i documenti dipendenti (Excel)', []);
+
         return Excel::download(
             new AllEmployeeDocumentsExport(),
             'tutti-i-documenti.xlsx'

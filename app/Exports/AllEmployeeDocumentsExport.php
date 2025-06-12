@@ -10,7 +10,13 @@ class AllEmployeeDocumentsExport implements FromCollection, WithHeadings
 {
     public function collection()
     {
-        return EmployeeDocument::with('employee', 'document')->get()->map(function ($doc) {
+        $documents = EmployeeDocument::with('employee', 'document')->get();
+
+        $user = auth()->check() ? auth()->user()->email : 'console/system';
+
+        Log::channel('exports')->info("[AllEmployeeDocumentsExport] Utente: {$user} ha esportato {$documents->count()} documenti.");
+
+        return $documents->map(function ($doc) {
             return [
                 'Dipendente' => $doc->employee->name,
                 'Documento' => $doc->document->name,

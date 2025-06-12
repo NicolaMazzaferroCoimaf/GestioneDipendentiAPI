@@ -130,7 +130,19 @@ return [
         'auth' => [
             'driver' => 'single',
             'path' => storage_path('logs/auth.log'),
-            'level' => 'debug',
+            'level' => 'info',
+        ],
+
+        'audit' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/audit.log'),
+            'level' => 'info',
+        ],
+
+        'error' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/error.log'),
+            'level' => 'error',
         ],
 
     ],

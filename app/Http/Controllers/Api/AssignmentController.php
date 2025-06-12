@@ -6,6 +6,7 @@ use App\Models\Group;
 use App\Models\Document;
 use App\Models\Employee;
 use Illuminate\Http\Request;
+use App\Traits\LogsUserAction;
 use App\Models\EmployeeDocument;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
@@ -14,6 +15,8 @@ use Illuminate\Support\Facades\Storage;
 
 class AssignmentController extends Controller
 {
+    use LogsUserAction;
+
     public function assignGroup(Request $request, Employee $employee)
     {
         $request->validate([
@@ -31,6 +34,8 @@ class AssignmentController extends Controller
             // Recupera i documenti associati al gruppo
             $group = Group::with('documents')->findOrFail($groupId);
 
+            $newDocs = 0;
+
             foreach ($group->documents as $document) {
                 // Controlla se il dipendente ha già questo documento
                 $alreadyAssigned = EmployeeDocument::where('employee_id', $employee->id)
@@ -44,10 +49,17 @@ class AssignmentController extends Controller
                         'document_id' => $document->id,
                         'expiration_date' => null,
                     ]);
+                    $newDocs++;
                 }
             }
 
             DB::commit();
+
+            $this->logUserAction('audit', 'Assegnato gruppo a dipendente', [
+                'employee_id' => $employee->id,
+                'group_id' => $groupId,
+                'documenti_assegnati' => $newDocs
+            ]);
 
             return response()->json([
                 'message' => 'Gruppo assegnato con successo e documenti aggiornati.',
@@ -106,6 +118,12 @@ class AssignmentController extends Controller
 
             DB::commit();
 
+            $this->logUserAction('audit', 'Assegnati gruppi multipli al dipendente', [
+                'employee_id' => $employee->id,
+                'group_ids' => $groupIds,
+                'nuovi_documenti' => count($newDocs)
+            ]);
+
             return response()->json([
                 'message' => 'Gruppi e documenti assegnati con successo.',
                 'employee_id' => $employee->id,
@@ -162,6 +180,12 @@ class AssignmentController extends Controller
 
             DB::commit();
 
+            $this->logUserAction('audit', 'Gruppo rimosso da dipendente', [
+                'employee_id' => $employee->id,
+                'group_id' => $groupId,
+                'documenti_rimossi' => count($docsToRemove)
+            ]);
+
             return response()->json([
                 'message' => 'Gruppo rimosso e documenti aggiornati.',
                 'group_id' => $groupId,
@@ -186,6 +210,11 @@ class AssignmentController extends Controller
 
         $group->documents()->syncWithoutDetaching($request->document_ids);
 
+        $this->logUserAction('audit', 'Documenti assegnati a gruppo', [
+            'group_id' => $group->id,
+            'document_ids' => $request->document_ids
+        ]);
+
         return response()->json([
             'message' => 'Documenti assegnati con successo al gruppo',
             'group_id' => $group->id,
@@ -205,6 +234,12 @@ class AssignmentController extends Controller
                 'expiration_date' => $request->input('expiration_date'),
             ]);
 
+        $this->logUserAction('audit', 'Aggiornata data di scadenza documento', [
+            'employee_id' => $employee->id,
+            'document_id' => $document->id,
+            'expiration_date' => $request->input('expiration_date')
+        ]);
+
         return response()->json([
             'message' => 'Data di scadenza aggiornata con successo',
             'employee_id' => $employee->id,
@@ -221,7 +256,6 @@ class AssignmentController extends Controller
         ]);
 
         $document = EmployeeDocument::findOrFail($employeeDocumentId);
-
         $paths = [];
 
         foreach ($request->file('images') as $image) {
@@ -229,6 +263,11 @@ class AssignmentController extends Controller
             $document->images()->create(['path' => $path]);
             $paths[] = $path;
         }
+
+        $this->logUserAction('audit', 'Immagini documento caricate', [
+            'employee_document_id' => $employeeDocumentId,
+            'paths' => $paths
+        ]);
 
         return response()->json([
             'message' => 'Immagini caricate con successo',
@@ -244,11 +283,18 @@ class AssignmentController extends Controller
         ]);
 
         $doc = EmployeeDocument::findOrFail($employeeDocumentId);
+        $paths = [];
 
         foreach ($request->file('files') as $file) {
-            $path = $file->store('employee_documents/files','public');
-            $doc->images()->create(['path' => $path]); // o relazione attachment
+            $path = $file->store('employee_documents/files', 'public');
+            $doc->images()->create(['path' => $path]);
+            $paths[] = $path;
         }
+
+        $this->logUserAction('audit', 'Allegati caricati', [
+            'employee_document_id' => $employeeDocumentId,
+            'files' => $paths
+        ]);
 
         return response()->json(['message' => 'Allegati caricati con successo']);
     }
@@ -256,6 +302,10 @@ class AssignmentController extends Controller
     public function getImages($employeeDocumentId)
     {
         $document = EmployeeDocument::with('images')->findOrFail($employeeDocumentId);
+
+        $this->logUserAction('audit', 'Visualizzazione immagini documento', [
+            'employee_document_id' => $employeeDocumentId
+        ]);
 
         return response()->json([
             'employee_document_id' => $document->id,
@@ -279,6 +329,10 @@ class AssignmentController extends Controller
         }
 
         $image->delete();
+
+        $this->logUserAction('uploads', 'Immagine eliminata', [
+            'image_id' => $imageId
+        ]);
 
         return response()->json([
             'message' => 'Immagine eliminata con successo'

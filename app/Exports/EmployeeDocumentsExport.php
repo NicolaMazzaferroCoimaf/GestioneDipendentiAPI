@@ -17,15 +17,21 @@ class EmployeeDocumentsExport implements FromCollection, WithHeadings
 
     public function collection()
     {
-        return EmployeeDocument::with('document')
+        $docs = EmployeeDocument::with('document')
             ->where('employee_id', $this->employeeId)
-            ->get()
-            ->map(function ($doc) {
-                return [
-                    'Documento' => $doc->document->name,
-                    'Scadenza' => $doc->expiration_date,
-                ];
-            });
+            ->get();
+
+        $count = $docs->count();
+        $user = auth()->check() ? auth()->user()->email : 'guest';
+
+        Log::channel('exports')->info("[EmployeeDocumentsExport] Utente {$user} ha esportato {$count} documenti per dipendente ID {$this->employeeId}.");
+
+        return $docs->map(function ($doc) {
+            return [
+                'Documento' => $doc->document->name,
+                'Scadenza' => $doc->expiration_date,
+            ];
+        });
     }
 
     public function headings(): array
