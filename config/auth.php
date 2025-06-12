@@ -40,6 +40,10 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+        'operator' => [
+            'driver' => 'session',
+            'provider' => 'ldap',
+        ],
     ],
 
     /*
@@ -63,6 +67,30 @@ return [
         'users' => [
             'driver' => 'eloquent',
             'model' => env('AUTH_MODEL', App\Models\User::class),
+        ],
+        'ldap' => [
+            'driver' => 'ldap',
+            'model' => LdapRecord\Models\ActiveDirectory\User::class,
+            'rules' => [
+                //
+            ],
+            'database' => [
+                'sync_passwords' => false,
+                'model' => App\Models\User::class,
+                'sync_attributes' => [
+                    'name' => 'cn',
+                    'email' => 'mail',
+                ],
+            ],
+            'identifiers' => [
+                'ldap' => [
+                    'locate_users_by' => 'samaccountname', // cerca con username tipo 'mario.rossi'
+                    'bind_users_by' => 'distinguishedname', // fa login via DN (più sicuro)
+                ],
+                'database' => [
+                    'guid_column' => 'ldap_guid',
+                ],
+            ],
         ],
 
         // 'users' => [

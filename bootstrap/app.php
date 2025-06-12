@@ -3,6 +3,7 @@
 use App\Http\Middleware\IsAdmin;
 use Illuminate\Foundation\Application;
 use Illuminate\Console\Scheduling\Schedule;
+use App\Http\Middleware\EnsureUserInLdapGroup;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 
@@ -16,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'isAdmin' => IsAdmin::class,
+            'ldap.group' => EnsureUserInLdapGroup::class,
         ]);
     })
     ->withSchedule(function (Schedule $schedule) {

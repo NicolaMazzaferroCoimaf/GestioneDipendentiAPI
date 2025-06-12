@@ -14,6 +14,7 @@ class AuthController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
+            'username' => 'required|string',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:6|confirmed',
         ]);
@@ -36,11 +37,16 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $request->validate([
-            'email' => 'required|email',
+            'username' => 'required|string',
             'password' => 'required',
         ]);
 
-        if (!Auth::attempt($request->only('email', 'password'))) {
+        $credentials = [
+            'username' => $request->username,
+            'password' => $request->password,
+        ];
+
+        if (!Auth::attempt($credentials)) {
             return response()->json(['message' => 'Credenziali non valide'], 401);
         }
 
