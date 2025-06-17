@@ -63,6 +63,29 @@ class GroupController extends Controller
         return response()->json(['message' => 'Gruppo eliminato']);
     }
 
+    public function attachDocuments(Request $request, Group $group)
+    {
+        $request->validate([
+            'document_ids'   => 'required|array|min:1',
+            'document_ids.*' => 'exists:documents,id',
+        ]);
+
+        $synced = $group->documents()->syncWithoutDetaching($request->document_ids);
+
+        // Log
+        app('log')->channel('audit')->info('Documenti collegati a gruppo', [
+            'group_id'      => $group->id,
+            'attached_ids'  => $synced['attached'] ?? [],
+            'current_user'  => optional(auth()->user())->email,
+        ]);
+
+        return response()->json([
+            'message' => 'Documenti collegati al gruppo',
+            'group'   => $group->id,
+            'attached'=> $synced['attached'] ?? [],
+        ], 200);
+    }
+
     public function detachDocuments(Request $request, Group $group)
     {
         $request->validate([

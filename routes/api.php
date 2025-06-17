@@ -28,27 +28,29 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('employees/{employee}/assign-group', [AssignmentController::class, 'assignGroup']);
         Route::post('employees/{employee}/assign-groups', [AssignmentController::class, 'assignMultipleGroups']);
         Route::post('employees/{employee}/detach-group', [AssignmentController::class, 'detachGroup']);
-        Route::post('groups/{group}/assign-documents', [GroupController::class, 'assignDocuments']);
+        Route::post('groups/{group}/attach-documents', [GroupController::class, 'attachDocuments']);
         Route::post('groups/{group}/detach-documents', [GroupController::class, 'detachDocuments']);
 
         Route::post('/users/{user}/make-admin', [UserRoleController::class, 'makeAdmin']);
         Route::post('/users/{user}/remove-admin', [UserRoleController::class, 'removeAdmin']);
     });
     
-    Route::middleware('admin.or.ldap:GESTIONALE-Dipendentii')->group(function () {
+    Route::middleware('admin.or.ldap:GESTIONALE-Dipendenti')->group(function () {
         Route::apiResource('employees', EmployeeController::class);
         Route::get('employees/{employee}/documents', [EmployeeController::class, 'getDocuments']);
-        Route::patch('employees/{employee}/documents/{document}', [AssignmentController::class, 'updateExpiration']);
-        Route::post('employee-documents/{id}/attachments', [AssignmentController::class, 'uploadAttachments']);
-        Route::post('employee-documents/{id}/images', [AssignmentController::class, 'uploadDocumentImages']);
-        Route::get('employee-documents/{id}/images', [AssignmentController::class, 'getImages']);
-        Route::delete('employee-documents/images/{id}', [AssignmentController::class, 'deleteImage']);
         Route::get('employees/documents/expiring', [EmployeeController::class, 'expiring']);
         Route::get('employees/documents/expired', [EmployeeController::class, 'expired']);
         Route::get('employees/{employee}/missing-documents', [EmployeeController::class, 'missingDocuments']);
         Route::get('employees/{employee}/documents/export', [EmployeeController::class, 'exportDocuments']);
         Route::get('employees/{employee}/documents/export/pdf', [EmployeeController::class, 'exportDocumentsPdf']);
         Route::get('documents/export/all', [EmployeeController::class, 'exportAllDocumentsExcel']);
+
+        Route::post('employees/{employee}/assign-document', [AssignmentController::class, 'assignDocument']);
+        Route::patch('employees/{employee}/documents/{document}', [AssignmentController::class, 'updateExpiration']);
+        Route::post('employee-documents/{id}/attachments', [AssignmentController::class, 'uploadAttachments']);
+        Route::post('employee-documents/{id}/images', [AssignmentController::class, 'uploadDocumentImages']);
+        Route::get('employee-documents/{id}/images', [AssignmentController::class, 'getImages']);
+        Route::delete('employee-documents/images/{id}', [AssignmentController::class, 'deleteImage']);
 
         Route::apiResource('attendances', AttendanceController::class);
         Route::apiResource('presences', PresenceController::class);

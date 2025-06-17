@@ -17,6 +17,10 @@ class AssignmentController extends Controller
 {
     use LogsUserAction;
 
+    /* ---------------------- *
+     * operazioni sui GRUPPI  *
+     * ---------------------- */
+
     public function assignGroup(Request $request, Employee $employee)
     {
         $request->validate([
@@ -201,50 +205,73 @@ class AssignmentController extends Controller
         }
     }
 
-    public function assignDocuments(Request $request, Group $group)
+    /* ---------------------- *
+     * operazioni sui DOC     *
+     * ---------------------- */
+
+    public function assignDocument(Request $request, Employee $employee)
     {
-        $request->validate([
-            'document_ids' => 'required|array|min:1',
-            'document_ids.*' => 'exists:documents,id',
+        $data = $request->validate([
+            'document_id'     => 'required|exists:documents,id',
+            // opzionale – se vuoi salvare già la scadenza
+            'expiration_date' => 'nullable|date|after_or_equal:today',
         ]);
 
-        $group->documents()->syncWithoutDetaching($request->document_ids);
+        // evita duplicati sul pivot employee_documents
+        $already = EmployeeDocument::where('employee_id', $employee->id)
+            ->where('document_id', $data['document_id'])
+            ->exists();
 
-        $this->logUserAction('audit', 'Documenti assegnati a gruppo', [
-            'group_id' => $group->id,
-            'document_ids' => $request->document_ids
+        if ($already) {
+            return response()->json([
+                'message' => 'Documento già assegnato a questo dipendente'
+            ], 409);
+        }
+
+        $pivot = EmployeeDocument::create([
+            'employee_id'     => $employee->id,
+            'document_id'     => $data['document_id'],
+            'expiration_date' => $data['expiration_date'] ?? null,
+        ]);
+
+        // ► log audit
+        $this->logUserAction('audit', 'Assegnato documento a dipendente', [
+            'employee_id' => $employee->id,
+            'document_id' => $data['document_id'],
         ]);
 
         return response()->json([
-            'message' => 'Documenti assegnati con successo al gruppo',
-            'group_id' => $group->id,
-            'documents_attached' => $request->document_ids
-        ]);
+            'message' => 'Documento assegnato con successo',
+            'pivot'   => $pivot
+        ], 201);
     }
 
     public function updateExpiration(Request $request, Employee $employee, Document $document)
     {
-        $request->validate([
+        $data = $request->validate([
             'expiration_date' => 'required|date|after_or_equal:today',
         ]);
 
-        // Aggiorna la data di scadenza nel pivot
-        $employee->documents()
-            ->updateExistingPivot($document->id, [
-                'expiration_date' => $request->input('expiration_date'),
-            ]);
+        // 🔹 se esiste aggiorna, altrimenti crea la riga pivot
+        $pivot = EmployeeDocument::updateOrCreate(
+            [
+                'employee_id' => $employee->id,
+                'document_id' => $document->id,
+            ],
+            [
+                'expiration_date' => $data['expiration_date'],
+            ]
+        );
 
-        $this->logUserAction('audit', 'Aggiornata data di scadenza documento', [
-            'employee_id' => $employee->id,
-            'document_id' => $document->id,
-            'expiration_date' => $request->input('expiration_date')
+        $this->logUserAction('audit', 'Aggiornata scadenza documento', [
+            'employee_id'     => $employee->id,
+            'document_id'     => $document->id,
+            'expiration_date' => $data['expiration_date'],
         ]);
 
         return response()->json([
-            'message' => 'Data di scadenza aggiornata con successo',
-            'employee_id' => $employee->id,
-            'document_id' => $document->id,
-            'expiration_date' => $request->input('expiration_date'),
+            'message'         => 'Scadenza salvata con successo',
+            'pivot'           => $pivot,
         ], 200);
     }
 
