@@ -2,8 +2,10 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\TagController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\GroupController;
+use App\Http\Controllers\Api\DeadlineController;
 use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\EmployeeController;
 use App\Http\Controllers\Api\LdapAuthController;
@@ -33,6 +35,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::post('/users/{user}/make-admin', [UserRoleController::class, 'makeAdmin']);
         Route::post('/users/{user}/remove-admin', [UserRoleController::class, 'removeAdmin']);
+
+        Route::apiResource('tags', TagController::class);
     });
     
     Route::middleware('admin.or.ldap:GESTIONALE-Dipendenti')->group(function () {
@@ -56,5 +60,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('attendances', AttendanceController::class);
         Route::apiResource('presences', PresenceController::class);
 
+    });
+
+    Route::middleware('admin.or.ldap:GESTIONALE-Scadenzario')->group(function () {
+        Route::apiResource('deadlines', DeadlineController::class);
+        Route::get('/deadlines/expired',   [DeadlineController::class,'expired']);
+        Route::get('/deadlines/expiring',  [DeadlineController::class,'expiring']);
     });
 });
