@@ -4,9 +4,13 @@ namespace App\Models;
 
 use App\Models\Tag;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Deadline extends Model
 {
+
+    use HasFactory;
+    
     protected $fillable = ['title','description','expiration_date','file_path'];
 
     public function tags()

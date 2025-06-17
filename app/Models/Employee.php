@@ -7,9 +7,13 @@ use App\Models\Document;
 use App\Models\Attendance;
 use App\Models\EmployeeDocument;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Employee extends Model
 {
+
+    use HasFactory;
+    
     protected $fillable = ['name', 'surname', 'email', 'phone'];
 
     public function groups()
