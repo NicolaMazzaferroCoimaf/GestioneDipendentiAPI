@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\TagController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\GroupController;
+use App\Http\Controllers\Api\VehicleController;
 use App\Http\Controllers\Api\DeadlineController;
 use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\EmployeeController;
@@ -13,6 +14,8 @@ use App\Http\Controllers\Api\PresenceController;
 use App\Http\Controllers\Api\UserRoleController;
 use App\Http\Controllers\Api\AssignmentController;
 use App\Http\Controllers\Api\AttendanceController;
+use App\Http\Controllers\Api\VehicleTypeController;
+use App\Http\Controllers\Api\VehicleDocumentController;
 
 
 Route::post('login', [AuthController::class, 'login']);
@@ -37,6 +40,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/users/{user}/remove-admin', [UserRoleController::class, 'removeAdmin']);
 
         Route::apiResource('tags', TagController::class);
+
+        Route::apiResource('vehicle-types', VehicleTypeController::class);
     });
     
     Route::middleware('admin.or.ldap:GESTIONALE-Dipendenti')->group(function () {
@@ -66,5 +71,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('deadlines', DeadlineController::class);
         Route::get('/deadlines/expired',   [DeadlineController::class,'expired']);
         Route::get('/deadlines/expiring',  [DeadlineController::class,'expiring']);
+    });
+
+    Route::middleware('admin.or.ldap:GESTIONALE-Flotta')->group(function () {
+        Route::apiResource('vehicles', VehicleController::class);
+
+        Route::post('vehicles/{vehicle}/documents',  [VehicleDocumentController::class,'store']);
+        Route::patch('vehicle-documents/{vehicleDocument}', [VehicleDocumentController::class,'update']);
+        Route::delete('vehicle-documents/{vehicleDocument}',[VehicleDocumentController::class,'destroy']);
     });
 });
