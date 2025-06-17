@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Group;
 use App\Models\Document;
+use App\Models\Attendance;
 use App\Models\EmployeeDocument;
 use Illuminate\Database\Eloquent\Model;
 
@@ -26,5 +27,10 @@ class Employee extends Model
         return $this->belongsToMany(Document::class, 'employee_documents')
                     ->withPivot('expiration_date')
                     ->withTimestamps();
+    }
+
+    public function attendances()
+    {
+        return $this->hasMany(Attendance::class);
     }
 }

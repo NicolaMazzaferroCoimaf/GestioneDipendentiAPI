@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\IsAdmin;
+use App\Http\Middleware\AdminOrLdap;
 use Illuminate\Foundation\Application;
 use Illuminate\Console\Scheduling\Schedule;
 use App\Http\Middleware\EnsureUserInLdapGroup;
@@ -17,7 +18,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'isAdmin' => IsAdmin::class,
-            'ldap.group' => EnsureUserInLdapGroup::class,
+            'ldap.group' => EnsureUserInLdapGroup::class, // Da usare solo se anche l' admin deve appartenere ad un gruppo LDAP
+            'admin.or.ldap'  => AdminOrLdap::class,
         ]);
     })
     ->withSchedule(function (Schedule $schedule) {

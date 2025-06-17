@@ -13,14 +13,15 @@ class MakeAdminUser extends Command
 {
     protected $signature = 'make:admin 
                             {--email=admin@example.com : Email dell\'admin} 
-                            {--name=Admin : Nome dell\'admin}';
+                            {--username=super.admin : Nome dell\'admin}';
 
     protected $description = 'Crea o aggiorna un utente admin con ruolo "admin", password casuale e gruppi LDAP se presenti';
 
     public function handle()
     {
         $email = $this->option('email');
-        $name = $this->option('name');
+        $name = $this->option('username');
+        $username = $this->option('username');
         $password = Str::random(24);
         $log = Log::channel('audit');
 
@@ -49,6 +50,7 @@ class MakeAdminUser extends Command
         } else {
             $user = new User();
             $user->name = $name;
+            $user->username = $username;
             $user->email = $email;
             $user->password = Hash::make($password);
             $user->role = 'admin';
@@ -71,6 +73,7 @@ class MakeAdminUser extends Command
 
             $this->info("✅ Utente admin creato con successo!");
             $this->line("Email: $email");
+            $this->line("Username: $username");
             $this->line("Password: $password");
 
             $log->info("Nuovo utente admin creato", [

@@ -7,8 +7,10 @@ use App\Http\Controllers\Api\GroupController;
 use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\EmployeeController;
 use App\Http\Controllers\Api\LdapAuthController;
+use App\Http\Controllers\Api\PresenceController;
 use App\Http\Controllers\Api\UserRoleController;
 use App\Http\Controllers\Api\AssignmentController;
+use App\Http\Controllers\Api\AttendanceController;
 
 
 Route::post('login', [AuthController::class, 'login']);
@@ -16,12 +18,9 @@ Route::post('/ldap-login', [LdapAuthController::class, 'login']);
 
 Route::middleware('auth:sanctum')->group(function () {
 
-    Route::middleware(['auth:sanctum', 'isAdmin'])->group(function () {
-        Route::post('/users/{user}/make-admin', [UserRoleController::class, 'makeAdmin']);
-        Route::post('/users/{user}/remove-admin', [UserRoleController::class, 'removeAdmin']);
-    });
+    Route::post('logout', [AuthController::class, 'logout']);
 
-    Route::middleware(['auth:sanctum', 'isAdmin'])->group(function () {
+    Route::middleware('isAdmin')->group(function () {
         Route::post('register', [AuthController::class, 'register']);
 
         Route::apiResource('groups', GroupController::class);
@@ -31,10 +30,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('employees/{employee}/detach-group', [AssignmentController::class, 'detachGroup']);
         Route::post('groups/{group}/assign-documents', [GroupController::class, 'assignDocuments']);
         Route::post('groups/{group}/detach-documents', [GroupController::class, 'detachDocuments']);
+
+        Route::post('/users/{user}/make-admin', [UserRoleController::class, 'makeAdmin']);
+        Route::post('/users/{user}/remove-admin', [UserRoleController::class, 'removeAdmin']);
     });
     
-    Route::middleware('auth:sanctum')->group(function () {
-        Route::apiResource('employees', EmployeeController::class)->middleware('ldap.group:GESTIONALE-Dipendenti');
+    Route::middleware('admin.or.ldap:GESTIONALE-Dipendentii')->group(function () {
+        Route::apiResource('employees', EmployeeController::class);
         Route::get('employees/{employee}/documents', [EmployeeController::class, 'getDocuments']);
         Route::patch('employees/{employee}/documents/{document}', [AssignmentController::class, 'updateExpiration']);
         Route::post('employee-documents/{id}/attachments', [AssignmentController::class, 'uploadAttachments']);
@@ -48,7 +50,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('employees/{employee}/documents/export/pdf', [EmployeeController::class, 'exportDocumentsPdf']);
         Route::get('documents/export/all', [EmployeeController::class, 'exportAllDocumentsExcel']);
 
+        Route::apiResource('attendances', AttendanceController::class);
+        Route::apiResource('presences', PresenceController::class);
 
-        Route::post('logout', [AuthController::class, 'logout']);
     });
 });
