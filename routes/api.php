@@ -38,6 +38,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('admin.or.ldap:GESTIONALE-Dipendenti')->group(function () {
         Route::apiResource('employees', EmployeeController::class);
         Route::get('employees/{employee}/documents', [EmployeeController::class, 'getDocuments']);
+        Route::get('employees/documents/overview', [EmployeeController::class, 'documentOverview']);
         Route::get('employees/documents/expiring', [EmployeeController::class, 'expiring']);
         Route::get('employees/documents/expired', [EmployeeController::class, 'expired']);
         Route::get('employees/{employee}/missing-documents', [EmployeeController::class, 'missingDocuments']);

@@ -6,11 +6,12 @@ use Carbon\Carbon;
 use App\Models\Document;
 use App\Models\Employee;
 use Illuminate\Http\Request;
+use App\Traits\LogsUserAction;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\EmployeeDocument;
+use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
 use Maatwebsite\Excel\Facades\Excel;
-use App\Traits\LogsUserAction;
 use App\Exports\EmployeeDocumentsExport;
 use App\Exports\AllEmployeeDocumentsExport;
 
@@ -97,6 +98,36 @@ class EmployeeController extends Controller
         ]);
 
         return response()->json($documents);
+    }
+
+    public function documentOverview(): JsonResponse
+    {
+        $employees = Employee::with([
+                'employeeDocuments' => fn ($q) => $q->orderBy('expiration_date'),
+                'employeeDocuments.document',
+            ])
+            ->orderBy('surname')
+            ->orderBy('name')
+            ->get()
+            ->map(function ($emp) {
+                return [
+                    'employee_id'   => $emp->id,
+                    'employee_name' => "{$emp->name} {$emp->surname}",
+                    'documents'     => $emp->employeeDocuments->map(function ($pivot) {
+                        return [
+                            'id' => $pivot->document->id,
+                            'name' => $pivot->document->name,
+                            'expiration_date' => $pivot->expiration_date,
+                        ];
+                    }),
+                ];
+            });
+
+        $this->logUserAction('audit', 'Panoramica documenti per dipendente', [
+            'totale_dipendenti' => $employees->count()
+        ]);
+
+        return response()->json($employees);
     }
 
     public function expiring(Request $request)
